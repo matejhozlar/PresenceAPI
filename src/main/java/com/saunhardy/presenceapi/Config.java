@@ -1,42 +1,118 @@
 package com.saunhardy.presenceapi;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.neoforged.bus.api.SubscribeEvent;
-import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
-// An example config class. This is not required, but it's a good idea to have one to keep your config organized.
-// Demonstrates how to use Neo's config APIs
 public class Config {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
-    public static final ModConfigSpec.BooleanValue LOG_DIRT_BLOCK = BUILDER
-            .comment("Whether to log the dirt block on common setup")
-            .define("logDirtBlock", true);
+    // API Configuration
+    public static final ModConfigSpec.ConfigValue<String> API_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> JWT_SECRET;
+    public static final ModConfigSpec.BooleanValue ENABLED;
 
-    public static final ModConfigSpec.IntValue MAGIC_NUMBER = BUILDER
-            .comment("A magic number")
-            .defineInRange("magicNumber", 42, 0, Integer.MAX_VALUE);
+    // Data Configuration
+    public static final ModConfigSpec.BooleanValue SEND_DISPLAY_NAME;
+    public static final ModConfigSpec.BooleanValue SEND_UUID;
+    public static final ModConfigSpec.BooleanValue SEND_PLAYER_IP;
+    public static final ModConfigSpec.BooleanValue SEND_GAMEMODE;
+    public static final ModConfigSpec.BooleanValue SEND_DIMENSION;
+    public static final ModConfigSpec.BooleanValue SEND_POSITION;
+    public static final ModConfigSpec.BooleanValue SEND_HEALTH;
+    public static final ModConfigSpec.BooleanValue SEND_EXPERIENCE_LEVEL;
 
-    public static final ModConfigSpec.ConfigValue<String> MAGIC_NUMBER_INTRODUCTION = BUILDER
-            .comment("What you want the introduction message to be for the magic number")
-            .define("magicNumberIntroduction", "The magic number is... ");
+    // Network Configuration
+    public static final ModConfigSpec.IntValue TIMEOUT_SECONDS;
+    public static final ModConfigSpec.BooleanValue RETRY_ON_FAILURE;
+    public static final ModConfigSpec.IntValue MAX_RETRIES;
 
-    // a list of strings that are treated as resource locations for items
-    public static final ModConfigSpec.ConfigValue<List<? extends String>> ITEM_STRINGS = BUILDER
-            .comment("A list of items to log on common setup.")
-            .defineListAllowEmpty("items", List.of("minecraft:iron_ingot"), () -> "", Config::validateItemName);
+    // Logging Configuration
+    public static final ModConfigSpec.BooleanValue LOG_REQUESTS;
+    public static final ModConfigSpec.BooleanValue LOG_RESPONSES;
+    public static final ModConfigSpec.BooleanValue LOG_ERRORS;
 
-    static final ModConfigSpec SPEC = BUILDER.build();
+    static {
+        BUILDER.comment("PresenceAPI Configuration").push("api");
 
-    private static boolean validateItemName(final Object obj) {
-        return obj instanceof String itemName && BuiltInRegistries.ITEM.containsKey(ResourceLocation.parse(itemName));
+        API_ENDPOINT = BUILDER
+                .comment("The HTTP(S) endpoint to send player presence data to")
+                .define("endpoint", "http://localhost:5000/api/presence");
+
+        JWT_SECRET = BUILDER
+                .comment("Secret key used to sign JWT tokens for API authentication")
+                .define("jwtSecret", "your-secret-key-change-this");
+
+        ENABLED = BUILDER
+                .comment("Enable or disable presence tracking system")
+                .define("enabled", true);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Player Data Configuration").push("data");
+
+        SEND_DISPLAY_NAME = BUILDER
+                .comment("Include the player's display name (may differ from username)")
+                .define("displayName", true);
+
+        SEND_UUID = BUILDER
+                .comment("Include the player's UUID")
+                .define("uuid", true);
+
+        SEND_PLAYER_IP = BUILDER
+                .comment("Include the player's IP address")
+                .define("playerIp", false);
+
+        SEND_GAMEMODE = BUILDER
+                .comment("Include the player's current gamemode")
+                .define("gamemode", true);
+
+        SEND_DIMENSION = BUILDER
+                .comment("Include the dimension the player is in")
+                .define("dimension", true);
+
+        SEND_POSITION = BUILDER
+                .comment("Include the player's coordinates")
+                .define("position", true);
+
+        SEND_HEALTH = BUILDER
+                .comment("Include the player's health")
+                .define("health", false);
+
+        SEND_EXPERIENCE_LEVEL = BUILDER
+                .comment("Include the player's experience level")
+                .define("experienceLevel", true);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Network Configuration").push("network");
+
+        TIMEOUT_SECONDS = BUILDER
+                .comment("HTTP request timeout in seconds")
+                .defineInRange("timeoutSeconds", 5, 1, 60);
+
+        RETRY_ON_FAILURE = BUILDER
+                .comment("Retry failed requests")
+                .define("retry", true);
+
+        MAX_RETRIES = BUILDER
+                .comment("Maximum number of retry attempts")
+                .defineInRange("maxRetries", 3, 0 ,10);
+
+        BUILDER.pop();
+
+        BUILDER.comment("Loggin Configuration").push("logging");
+
+        LOG_REQUESTS = BUILDER
+                .comment("Log all outgoing API requests")
+                .define("logRequests", true);
+
+        LOG_RESPONSES = BUILDER
+                .comment("Log all API responses")
+                .define("logResponses", false);
+
+        LOG_ERRORS = BUILDER
+                .comment("Log all errors")
+                .define("logErrors", true);
     }
+
+    public static final ModConfigSpec SPEC = BUILDER.build();
 }
