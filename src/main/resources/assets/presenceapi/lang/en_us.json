@@ -1,0 +1,13 @@
+{
+  "itemGroup.presenceapi": "Example Mod Tab",
+  "block.presenceapi.example_block": "Example Block",
+  "item.presenceapi.example_item": "Example Item",
+
+  "presenceapi.configuration.title": "presenceAPI Configs",
+  "presenceapi.configuration.section.presenceapi.common.toml": "presenceAPI Configs",
+  "presenceapi.configuration.section.presenceapi.common.toml.title": "presenceAPI Configs",
+  "presenceapi.configuration.items": "Item List",
+  "presenceapi.configuration.logDirtBlock": "Log Dirt Block",
+  "presenceapi.configuration.magicNumberIntroduction": "Magic Number Text",
+  "presenceapi.configuration.magicNumber": "Magic Number"
+}
