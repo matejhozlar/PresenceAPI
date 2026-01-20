@@ -5,6 +5,7 @@ bin
 .metadata
 .classpath
 .project
+node_modules
 
 # idea
 out

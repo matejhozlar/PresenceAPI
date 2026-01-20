@@ -12,7 +12,6 @@ public class Config {
 
     // Data Configuration
     public static final ModConfigSpec.BooleanValue SEND_DISPLAY_NAME;
-    public static final ModConfigSpec.BooleanValue SEND_UUID;
     public static final ModConfigSpec.BooleanValue SEND_PLAYER_IP;
     public static final ModConfigSpec.BooleanValue SEND_GAMEMODE;
     public static final ModConfigSpec.BooleanValue SEND_DIMENSION;
@@ -35,7 +34,7 @@ public class Config {
 
         API_ENDPOINT = BUILDER
                 .comment("The HTTP(S) endpoint to send player presence data to")
-                .define("endpoint", "http://localhost:5000/api/presence");
+                .define("endpoint", "http://127.0.0.1:5000/api/presence");
 
         JWT_SECRET = BUILDER
                 .comment("Secret key used to sign JWT tokens for API authentication")
@@ -52,10 +51,6 @@ public class Config {
         SEND_DISPLAY_NAME = BUILDER
                 .comment("Include the player's display name (may differ from username)")
                 .define("displayName", true);
-
-        SEND_UUID = BUILDER
-                .comment("Include the player's UUID")
-                .define("uuid", true);
 
         SEND_PLAYER_IP = BUILDER
                 .comment("Include the player's IP address")
