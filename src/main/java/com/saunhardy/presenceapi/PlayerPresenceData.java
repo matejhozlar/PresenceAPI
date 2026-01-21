@@ -18,6 +18,7 @@ public class PlayerPresenceData {
     private final Float health;
     private final Integer experienceLevel;
     private final String ipAddress;
+    private final String serverId;
     private final long timestamp;
 
     private PlayerPresenceData(Builder builder) {
@@ -33,6 +34,7 @@ public class PlayerPresenceData {
         this.health = builder.health;
         this.experienceLevel = builder.experienceLevel;
         this.ipAddress = builder.ipAddress;
+        this.serverId = builder.serverId;
         this.timestamp = System.currentTimeMillis();
     }
 
@@ -44,6 +46,7 @@ public class PlayerPresenceData {
         json.addProperty("state", state);
         json.addProperty("timestamp", timestamp);
 
+        if (serverId != null) json.addProperty("serverId", serverId);
         if (displayName != null) json.addProperty("displayName", displayName);
         if (gamemode != null) json.addProperty("gamemode", gamemode);
         if (dimension != null) json.addProperty("dimension", dimension);
@@ -66,7 +69,8 @@ public class PlayerPresenceData {
         return new Builder()
                 .minecraftUsername(player.getGameProfile().getName())
                 .uuid(player.getStringUUID())
-                .state(state);
+                .state(state)
+                .serverId();
     }
 
     public static class Builder {
@@ -82,6 +86,7 @@ public class PlayerPresenceData {
         private Float health;
         private Integer experienceLevel;
         private String ipAddress;
+        private String serverId;
 
         public Builder minecraftUsername(String minecraftUsername) {
             this.minecraftUsername = minecraftUsername;
@@ -145,6 +150,14 @@ public class PlayerPresenceData {
         public Builder ipAddress(String ipAddress) {
             if (Config.SEND_PLAYER_IP.get()) {
                 this.ipAddress = ipAddress;
+            }
+            return this;
+        }
+
+        public Builder serverId() {
+            String configServerId = Config.SERVER_ID.get();
+            if (!configServerId.isEmpty()) {
+                this.serverId = configServerId;
             }
             return this;
         }

@@ -5,7 +5,6 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
-import java.util.concurrent.TimeUnit;
 
 @EventBusSubscriber(modid = presenceAPI.MODID)
 public class PlayerEventHandler {

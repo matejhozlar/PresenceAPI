@@ -8,6 +8,7 @@ public class Config {
     // API Configuration
     public static final ModConfigSpec.ConfigValue<String> API_ENDPOINT;
     public static final ModConfigSpec.ConfigValue<String> JWT_SECRET;
+    public static final ModConfigSpec.ConfigValue<String> SERVER_ID;
     public static final ModConfigSpec.BooleanValue ENABLED;
 
     // Data Configuration
@@ -39,6 +40,10 @@ public class Config {
         JWT_SECRET = BUILDER
                 .comment("Secret key used to sign JWT tokens for API authentication")
                 .define("jwtSecret", "your-secret-key-change-this");
+
+        SERVER_ID = BUILDER
+                .comment("Optional server identifier to include in all requests (useful for multi-server setups)")
+                .define("serverId", "");
 
         ENABLED = BUILDER
                 .comment("Enable or disable presence tracking system")
