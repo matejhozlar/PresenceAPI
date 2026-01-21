@@ -1,25 +1,37 @@
+# PresenceAPI
 
-Installation information
-=======
+PresenceAPI is a lightweight NeoForge server-side mod that tracks player presence and synchronizes it with an external backend via configurable HTTP requests.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+Built for server networks, dashboards, analytics platforms, and custom integrations, PresenceAPI provides a clean and reliable way to react to player activity in real time.
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+## ✨ Features
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+Detects player join and leave events
+Sends HTTP/HTTPS requests to external services
+Fully configurable endpoints, headers, and payloads
+Server-side only — no client installation required
+Lightweight and performance-friendly
+How It Works
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
+When a player joins or leaves the server, PresenceAPI sends an HTTP request to your configured endpoint containing customizable player and server data.
 
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+This allows external systems to instantly react to server activity.
+
+## Configuration
+
+PresenceAPI includes a flexible configuration system that allows you to:
+
+Define request URLs
+Customize headers (authentication, tokens, etc.)
+Configure request payload data (player, server, event type)
+Enable or disable specific events
+
+All behavior can be adjusted without modifying code.
+
+## Use Cases
+
+Player presence tracking
+Multi-server network coordination
+Web dashboards and status pages
+Discord bots and webhook integrations
+Analytics, logging, and monitoring
