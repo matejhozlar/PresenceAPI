@@ -31,6 +31,7 @@ public class ApiClient {
         if (httpClient == null) {
             httpClient = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofSeconds(Config.TIMEOUT_SECONDS.get()))
+                    .version(HttpClient.Version.HTTP_1_1)
                     .build();
         }
         return httpClient;
