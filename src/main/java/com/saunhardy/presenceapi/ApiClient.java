@@ -102,6 +102,55 @@ public class ApiClient {
         }
     }
 
+    /**
+     * Sends a heartbeat payload (full online player list) to the backend.
+     * Uses the same endpoint base with /heartbeat appended.
+     */
+    public void sendHeartbeat(com.google.gson.JsonObject payload) {
+        if (!Config.ENABLED.get() || shuttingDown) {
+            return;
+        }
+
+        executor.submit(() -> {
+            try {
+                String token = generateJWT();
+                String jsonBody = payload.toString();
+                String endpoint = Config.API_ENDPOINT.get();
+
+                // Derive heartbeat URL from the base presence endpoint
+                // e.g. http://host/api/presence -> http://host/api/presence/heartbeat
+                if (endpoint.endsWith("/")) {
+                    endpoint = endpoint.substring(0, endpoint.length() - 1);
+                }
+                String heartbeatUrl = endpoint + "/heartbeat";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(heartbeatUrl))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + token)
+                        .timeout(Duration.ofSeconds(Config.TIMEOUT_SECONDS.get()))
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
+
+                HttpResponse<String> response = getHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    if (Config.LOG_REQUESTS.get()) {
+                        presenceAPI.LOGGER.info("Heartbeat sent successfully ({} players)", payload.getAsJsonArray("players").size());
+                    }
+                } else {
+                    if (Config.LOG_ERRORS.get()) {
+                        presenceAPI.LOGGER.warn("Heartbeat failed with status {}: {}", response.statusCode(), response.body());
+                    }
+                }
+            } catch (Exception e) {
+                if (Config.LOG_ERRORS.get()) {
+                    presenceAPI.LOGGER.error("Failed to send heartbeat: {}", e.getMessage());
+                }
+            }
+        });
+    }
+
     private String generateJWT() {
         try {
             String secret = Config.JWT_SECRET.get();

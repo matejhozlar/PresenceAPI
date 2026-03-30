@@ -20,6 +20,9 @@ public class Config {
     public static final ModConfigSpec.BooleanValue SEND_HEALTH;
     public static final ModConfigSpec.BooleanValue SEND_EXPERIENCE_LEVEL;
 
+    // Heartbeat Configuration
+    public static final ModConfigSpec.IntValue HEARTBEAT_INTERVAL_MINUTES;
+
     // Network Configuration
     public static final ModConfigSpec.IntValue TIMEOUT_SECONDS;
     public static final ModConfigSpec.BooleanValue RETRY_ON_FAILURE;
@@ -48,6 +51,10 @@ public class Config {
         ENABLED = BUILDER
                 .comment("Enable or disable presence tracking system")
                 .define("enabled", true);
+
+        HEARTBEAT_INTERVAL_MINUTES = BUILDER
+                .comment("Interval in minutes between heartbeat syncs (sends full player list to backend). Set to 0 to disable")
+                .defineInRange("heartbeatIntervalMinutes", 5, 0, 60);
 
         BUILDER.pop();
 

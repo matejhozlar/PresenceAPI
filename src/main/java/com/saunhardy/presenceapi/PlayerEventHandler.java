@@ -1,20 +1,30 @@
 package com.saunhardy.presenceapi;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 
 
 @EventBusSubscriber(modid = presenceAPI.MODID)
 public class PlayerEventHandler {
     private static ApiClient apiClient;
+    private static HeartbeatService heartbeatService;
 
     private static ApiClient getApiClient() {
         if (apiClient == null) {
             apiClient = new ApiClient();
         }
         return apiClient;
+    }
+
+    @SubscribeEvent
+    public static void onServerStarted(ServerStartedEvent event) {
+        MinecraftServer server = event.getServer();
+        heartbeatService = new HeartbeatService(getApiClient());
+        heartbeatService.start(server);
     }
 
     @SubscribeEvent
@@ -51,6 +61,9 @@ public class PlayerEventHandler {
     }
 
     public static void shutdown() {
+        if (heartbeatService != null) {
+            heartbeatService.shutdown();
+        }
         if (apiClient != null) {
             apiClient.shutdown();
         }
