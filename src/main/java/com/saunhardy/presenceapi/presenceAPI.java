@@ -1,5 +1,13 @@
 package com.saunhardy.presenceapi;
 
+import com.saunhardy.crnet.CRNetClient;
+import com.saunhardy.crnet.HeartbeatHandle;
+import com.saunhardy.crnet.auth.AuthStrategy;
+import com.saunhardy.crnet.presence.PlayerPresenceData;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
@@ -8,25 +16,87 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
+
+import java.util.concurrent.TimeUnit;
 
 @Mod(presenceAPI.MODID)
 public class presenceAPI {
     public static final String MODID = "presenceapi";
     public static final Logger LOGGER = LogUtils.getLogger();
 
+    private static CRNetClient client;
+    private static HeartbeatHandle heartbeatHandle;
+
     public presenceAPI(IEventBus modEventBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
 
-        // Register for server stopping event
         NeoForge.EVENT_BUS.register(this);
 
         LOGGER.info("Presence API initialized");
     }
 
     @SubscribeEvent
+    public void onServerStarted(ServerStartedEvent event) {
+        if (!Config.ENABLED.get()) {
+            LOGGER.info("PresenceAPI is disabled via config");
+            return;
+        }
+
+        client = new CRNetClient.Builder()
+                .baseUrl(Config.API_URL.get())
+                .auth(AuthStrategy.selfSignedJwt(Config.JWT_SECRET.get()))
+                .build();
+
+        int heartbeatInterval = Config.HEARTBEAT_INTERVAL_MINUTES.get();
+        if (heartbeatInterval > 0) {
+            MinecraftServer server = event.getServer();
+            heartbeatHandle = client.heartbeat()
+                    .endpoint(Config.HEARTBEAT_ENDPOINT.get())
+                    .interval(heartbeatInterval, TimeUnit.MINUTES)
+                    .payload(() -> buildHeartbeatPayload(server))
+                    .start();
+        }
+
+        LOGGER.info("PresenceAPI client started");
+    }
+
+    @SubscribeEvent
     public void onServerStopping(ServerStoppingEvent event) {
         LOGGER.info("Server stopping - shutting down PresenceAPI");
-        PlayerEventHandler.shutdown();
+        if (heartbeatHandle != null) {
+            heartbeatHandle.stop();
+            heartbeatHandle = null;
+        }
+        if (client != null) {
+            client.close();
+            client = null;
+        }
+    }
+
+    static CRNetClient getClient() {
+        return client;
+    }
+
+    private String buildHeartbeatPayload(MinecraftServer server) {
+        JsonArray playersArray = new JsonArray();
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            JsonObject obj = new JsonObject();
+            obj.addProperty("uuid", player.getStringUUID());
+            obj.addProperty("username", player.getGameProfile().getName());
+            playersArray.add(obj);
+        }
+
+        JsonObject payload = new JsonObject();
+        payload.add("players", playersArray);
+        payload.addProperty("timestamp", System.currentTimeMillis());
+
+        String serverId = Config.SERVER_ID.get();
+        if (!serverId.isEmpty()) {
+            payload.addProperty("serverId", serverId);
+        }
+
+        return payload.toString();
     }
 }

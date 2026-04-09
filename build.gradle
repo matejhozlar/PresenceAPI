@@ -13,7 +13,8 @@ version = mod_version
 group = mod_group_id
 
 repositories {
-    mavenCentral()  // JWT libraries are hosted here
+    mavenCentral()
+    maven { url = "https://raw.githubusercontent.com/matejhozlar/maven/main" }
 }
 
 base {
@@ -75,9 +76,7 @@ configurations {
 }
 
 dependencies {
-    implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
-    runtimeOnly 'io.jsonwebtoken:jjwt-gson:0.12.5'
+    implementation 'com.saunhardy:crnet:2.1.0'
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
