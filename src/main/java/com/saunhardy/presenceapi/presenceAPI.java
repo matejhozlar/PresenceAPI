@@ -3,7 +3,6 @@ package com.saunhardy.presenceapi;
 import com.saunhardy.crnet.CRNetClient;
 import com.saunhardy.crnet.HeartbeatHandle;
 import com.saunhardy.crnet.auth.AuthStrategy;
-import com.saunhardy.crnet.presence.PlayerPresenceData;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.minecraft.server.MinecraftServer;
@@ -19,6 +18,7 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Mod(presenceAPI.MODID)
@@ -81,7 +81,8 @@ public class presenceAPI {
 
     private String buildHeartbeatPayload(MinecraftServer server) {
         JsonArray playersArray = new JsonArray();
-        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+        List<ServerPlayer> players = List.copyOf(server.getPlayerList().getPlayers());
+        for (ServerPlayer player : players) {
             JsonObject obj = new JsonObject();
             obj.addProperty("uuid", player.getStringUUID());
             obj.addProperty("username", player.getGameProfile().getName());
