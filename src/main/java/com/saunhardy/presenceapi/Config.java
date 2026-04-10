@@ -52,7 +52,7 @@ public class Config {
                 .define("serverId", "");
 
         ENABLED = BUILDER
-                .comment("Enable or disable presence tracking system")
+                .comment("Enable or disable presence tracking system. Requires server restart to take effect")
                 .define("enabled", true);
 
         HEARTBEAT_INTERVAL_MINUTES = BUILDER
@@ -99,6 +99,7 @@ public class Config {
                 .comment("Log all outgoing API requests")
                 .define("logRequests", true);
 
+        BUILDER.pop();
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
