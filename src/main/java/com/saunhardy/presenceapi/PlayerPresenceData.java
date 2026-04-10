@@ -1,30 +1,45 @@
 package com.saunhardy.presenceapi;
 
-
 import com.google.gson.JsonObject;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.GameType;
+import org.jetbrains.annotations.Nullable;
 
+/**
+ * Immutable data object representing a player's presence state.
+ *
+ * <h3>Usage</h3>
+ * <pre>{@code
+ * PlayerPresenceData data = PlayerPresenceData.fromPlayer(player, "joined")
+ *         .displayName(player.getDisplayName().getString())
+ *         .gamemode(player.gameMode.getGameModeForPlayer())
+ *         .build();
+ * }</pre>
+ */
 public class PlayerPresenceData {
+
     private final String minecraftUsername;
     private final String uuid;
     private final String state;
-    private final String displayName;
-    private final String gamemode;
-    private final String dimension;
-    private final Double x;
-    private final Double y;
-    private final Double z;
-    private final Float health;
-    private final Integer experienceLevel;
-    private final String ipAddress;
-    private final String serverId;
     private final long timestamp;
+
+    @Nullable private final String serverId;
+    @Nullable private final String displayName;
+    @Nullable private final String gamemode;
+    @Nullable private final String dimension;
+    @Nullable private final Double x;
+    @Nullable private final Double y;
+    @Nullable private final Double z;
+    @Nullable private final Float health;
+    @Nullable private final Integer experienceLevel;
+    @Nullable private final String ipAddress;
 
     private PlayerPresenceData(Builder builder) {
         this.minecraftUsername = builder.minecraftUsername;
         this.uuid = builder.uuid;
         this.state = builder.state;
+        this.timestamp = builder.timestamp;
+        this.serverId = builder.serverId;
         this.displayName = builder.displayName;
         this.gamemode = builder.gamemode;
         this.dimension = builder.dimension;
@@ -34,13 +49,13 @@ public class PlayerPresenceData {
         this.health = builder.health;
         this.experienceLevel = builder.experienceLevel;
         this.ipAddress = builder.ipAddress;
-        this.serverId = builder.serverId;
-        this.timestamp = System.currentTimeMillis();
     }
 
+    /**
+     * Serialises this presence data to a JSON object.
+     */
     public JsonObject toJson() {
         JsonObject json = new JsonObject();
-
         json.addProperty("minecraftUsername", minecraftUsername);
         json.addProperty("uuid", uuid);
         json.addProperty("state", state);
@@ -65,104 +80,67 @@ public class PlayerPresenceData {
         return json;
     }
 
+    /**
+     * Creates a new builder pre-populated with the player's username and UUID.
+     *
+     * @param player the server player
+     * @param state  event state (e.g. {@code "joined"}, {@code "left"})
+     * @return a new builder
+     */
     public static Builder fromPlayer(ServerPlayer player, String state) {
         return new Builder()
                 .minecraftUsername(player.getGameProfile().getName())
                 .uuid(player.getStringUUID())
-                .state(state)
-                .serverId();
+                .state(state);
     }
 
     public static class Builder {
         private String minecraftUsername;
         private String uuid;
         private String state;
-        private String displayName;
-        private String gamemode;
-        private String dimension;
-        private Double x;
-        private Double y;
-        private Double z;
-        private Float health;
-        private Integer experienceLevel;
-        private String ipAddress;
-        private String serverId;
+        private long timestamp = System.currentTimeMillis();
 
-        public Builder minecraftUsername(String minecraftUsername) {
-            this.minecraftUsername = minecraftUsername;
+        @Nullable private String serverId;
+        @Nullable private String displayName;
+        @Nullable private String gamemode;
+        @Nullable private String dimension;
+        @Nullable private Double x;
+        @Nullable private Double y;
+        @Nullable private Double z;
+        @Nullable private Float health;
+        @Nullable private Integer experienceLevel;
+        @Nullable private String ipAddress;
+
+        public Builder minecraftUsername(String minecraftUsername) { this.minecraftUsername = minecraftUsername; return this; }
+        public Builder uuid(String uuid) { this.uuid = uuid; return this; }
+        public Builder state(String state) { this.state = state; return this; }
+        public Builder timestamp(long timestamp) { this.timestamp = timestamp; return this; }
+        public Builder serverId(@Nullable String serverId) { this.serverId = serverId; return this; }
+
+        public Builder displayName(@Nullable String displayName) { this.displayName = displayName; return this; }
+
+        public Builder gamemode(@Nullable GameType gameType) {
+            this.gamemode = gameType != null ? gameType.getName() : null;
             return this;
         }
 
-        public Builder uuid(String uuid) {
-            this.uuid = uuid;
-            return this;
-        }
-
-        public Builder state(String state) {
-            this.state = state;
-            return this;
-        }
-
-        public Builder displayName(String displayName) {
-            if (Config.SEND_DISPLAY_NAME.get()) {
-                this.displayName = displayName;
-            }
-            return this;
-        }
-
-        public Builder gamemode(GameType gamemode) {
-            if (Config.SEND_GAMEMODE.get()) {
-                this.gamemode = gamemode.getName();
-            }
-            return this;
-        }
-
-        public Builder dimension(String dimension) {
-            if (Config.SEND_DIMENSION.get()) {
-                this.dimension = dimension;
-            }
-            return this;
-        }
+        public Builder dimension(@Nullable String dimension) { this.dimension = dimension; return this; }
 
         public Builder position(double x, double y, double z) {
-            if (Config.SEND_POSITION.get()) {
-                this.x = x;
-                this.y = y;
-                this.z = z;
-            }
+            this.x = x;
+            this.y = y;
+            this.z = z;
             return this;
         }
 
-        public Builder health(float health) {
-            if (Config.SEND_HEALTH.get()) {
-                this.health = health;
-            }
-            return this;
-        }
-
-        public Builder experienceLevel(int level) {
-            if (Config.SEND_EXPERIENCE_LEVEL.get()) {
-                this.experienceLevel = level;
-            }
-            return this;
-        }
-
-        public Builder ipAddress(String ipAddress) {
-            if (Config.SEND_PLAYER_IP.get()) {
-                this.ipAddress = ipAddress;
-            }
-            return this;
-        }
-
-        public Builder serverId() {
-            String configServerId = Config.SERVER_ID.get();
-            if (!configServerId.isEmpty()) {
-                this.serverId = configServerId;
-            }
-            return this;
-        }
+        public Builder health(float health) { this.health = health; return this; }
+        public Builder experienceLevel(int level) { this.experienceLevel = level; return this; }
+        public Builder ipAddress(@Nullable String ipAddress) { this.ipAddress = ipAddress; return this; }
 
         public PlayerPresenceData build() {
+            if (minecraftUsername == null) throw new IllegalStateException("minecraftUsername is required");
+            if (uuid == null) throw new IllegalStateException("uuid is required");
+            if (state == null) throw new IllegalStateException("state is required");
             return new PlayerPresenceData(this);
         }
     }

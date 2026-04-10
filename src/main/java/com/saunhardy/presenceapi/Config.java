@@ -6,10 +6,12 @@ public class Config {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     // API Configuration
-    public static final ModConfigSpec.ConfigValue<String> API_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> API_URL;
     public static final ModConfigSpec.ConfigValue<String> JWT_SECRET;
     public static final ModConfigSpec.ConfigValue<String> SERVER_ID;
     public static final ModConfigSpec.BooleanValue ENABLED;
+    public static final ModConfigSpec.ConfigValue<String> PRESENCE_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> HEARTBEAT_ENDPOINT;
 
     // Data Configuration
     public static final ModConfigSpec.BooleanValue SEND_DISPLAY_NAME;
@@ -23,25 +25,26 @@ public class Config {
     // Heartbeat Configuration
     public static final ModConfigSpec.IntValue HEARTBEAT_INTERVAL_MINUTES;
 
-    // Network Configuration
-    public static final ModConfigSpec.IntValue TIMEOUT_SECONDS;
-    public static final ModConfigSpec.BooleanValue RETRY_ON_FAILURE;
-    public static final ModConfigSpec.IntValue MAX_RETRIES;
-
     // Logging Configuration
     public static final ModConfigSpec.BooleanValue LOG_REQUESTS;
-    public static final ModConfigSpec.BooleanValue LOG_RESPONSES;
-    public static final ModConfigSpec.BooleanValue LOG_ERRORS;
 
     static {
         BUILDER.comment("PresenceAPI Configuration").push("api");
 
-        API_ENDPOINT = BUILDER
-                .comment("The HTTP(S) endpoint to send player presence data to")
-                .define("endpoint", "http://127.0.0.1:5000/api/presence");
+        API_URL = BUILDER
+                .comment("The base URL of the backend API (e.g. http://127.0.0.1:5000). Requires server restart to take effect")
+                .define("apiUrl", "http://127.0.0.1:5000");
+
+        PRESENCE_ENDPOINT = BUILDER
+                .comment("The endpoint path for presence events (relative to the base URL). Requires server restart to take effect")
+                .define("presenceEndpoint", "/api/presence");
+
+        HEARTBEAT_ENDPOINT = BUILDER
+                .comment("The endpoint path for heartbeat syncs (relative to the base URL). Requires server restart to take effect")
+                .define("heartbeatEndpoint", "/api/presence/heartbeat");
 
         JWT_SECRET = BUILDER
-                .comment("Secret key used to sign JWT tokens for API authentication")
+                .comment("Secret key used to sign JWT tokens for API authentication. Requires server restart to take effect")
                 .define("jwtSecret", "your-secret-key-change-this");
 
         SERVER_ID = BUILDER
@@ -49,11 +52,11 @@ public class Config {
                 .define("serverId", "");
 
         ENABLED = BUILDER
-                .comment("Enable or disable presence tracking system")
+                .comment("Enable or disable presence tracking system. Requires server restart to take effect")
                 .define("enabled", true);
 
         HEARTBEAT_INTERVAL_MINUTES = BUILDER
-                .comment("Interval in minutes between heartbeat syncs (sends full player list to backend). Set to 0 to disable")
+                .comment("Interval in minutes between heartbeat syncs (sends full player list to backend). Set to 0 to disable. Requires server restart to take effect")
                 .defineInRange("heartbeatIntervalMinutes", 5, 0, 60);
 
         BUILDER.pop();
@@ -90,35 +93,13 @@ public class Config {
 
         BUILDER.pop();
 
-        BUILDER.comment("Network Configuration").push("network");
-
-        TIMEOUT_SECONDS = BUILDER
-                .comment("HTTP request timeout in seconds")
-                .defineInRange("timeoutSeconds", 5, 1, 60);
-
-        RETRY_ON_FAILURE = BUILDER
-                .comment("Retry failed requests")
-                .define("retry", true);
-
-        MAX_RETRIES = BUILDER
-                .comment("Maximum number of retry attempts")
-                .defineInRange("maxRetries", 3, 0 ,10);
-
-        BUILDER.pop();
-
-        BUILDER.comment("Loggin Configuration").push("logging");
+        BUILDER.comment("Logging Configuration").push("logging");
 
         LOG_REQUESTS = BUILDER
                 .comment("Log all outgoing API requests")
                 .define("logRequests", true);
 
-        LOG_RESPONSES = BUILDER
-                .comment("Log all API responses")
-                .define("logResponses", false);
-
-        LOG_ERRORS = BUILDER
-                .comment("Log all errors")
-                .define("logErrors", true);
+        BUILDER.pop();
     }
 
     public static final ModConfigSpec SPEC = BUILDER.build();
