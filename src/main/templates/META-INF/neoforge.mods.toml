@@ -91,7 +91,7 @@ Example mod description.
 [[dependencies.${mod_id}]]
     modId="crnet"
     type="required"
-    versionRange="[2.1.3,)"
+    versionRange="[2.2.0,)"
     ordering="AFTER"
     side="SERVER"
 

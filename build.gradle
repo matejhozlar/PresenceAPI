@@ -76,7 +76,7 @@ configurations {
 }
 
 dependencies {
-    implementation 'com.saunhardy:crnet:2.1.3'
+    implementation 'com.saunhardy:crnet:2.2.0'
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

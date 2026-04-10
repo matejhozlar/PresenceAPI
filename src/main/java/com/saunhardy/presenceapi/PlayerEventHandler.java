@@ -1,7 +1,6 @@
 package com.saunhardy.presenceapi;
 
 import com.saunhardy.crnet.CRNetClient;
-import com.saunhardy.crnet.presence.PlayerPresenceData;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -38,11 +37,16 @@ public class PlayerEventHandler {
         }
 
         client.postAsync(Config.PRESENCE_ENDPOINT.get(), json)
-                .whenComplete((result, ex) -> {
+                .whenComplete((response, ex) -> {
                     if (ex != null) {
                         presenceAPI.LOGGER.error("Failed to send presence data: {}", ex.getMessage());
+                    } else if (!response.isSuccess()) {
+                        presenceAPI.LOGGER.error("Presence POST returned HTTP {}: {}",
+                                response.getStatusCode(),
+                                response.getMessage() != null ? response.getMessage() : response.getError());
                     } else if (Config.LOG_REQUESTS.get()) {
-                        presenceAPI.LOGGER.info("Presence data sent successfully");
+                        presenceAPI.LOGGER.info("Presence data sent: {}",
+                                response.getMessage() != null ? response.getMessage() : "success");
                     }
                 });
     }
