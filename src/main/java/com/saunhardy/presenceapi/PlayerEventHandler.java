@@ -37,7 +37,14 @@ public class PlayerEventHandler {
             presenceAPI.LOGGER.info("Sending presence data: {}", json);
         }
 
-        client.postAsync(Config.PRESENCE_ENDPOINT.get(), json);
+        client.postAsync(Config.PRESENCE_ENDPOINT.get(), json)
+                .whenComplete((result, ex) -> {
+                    if (ex != null) {
+                        presenceAPI.LOGGER.error("Failed to send presence data: {}", ex.getMessage());
+                    } else if (Config.LOG_REQUESTS.get()) {
+                        presenceAPI.LOGGER.info("Presence data sent successfully");
+                    }
+                });
     }
 
     private static PlayerPresenceData buildPlayerData(ServerPlayer player, String state) {
