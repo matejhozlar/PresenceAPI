@@ -10,17 +10,10 @@ public class Config {
     public static final ModConfigSpec.ConfigValue<String> JWT_SECRET;
     public static final ModConfigSpec.ConfigValue<String> SERVER_ID;
     public static final ModConfigSpec.BooleanValue ENABLED;
-    public static final ModConfigSpec.ConfigValue<String> PRESENCE_ENDPOINT;
-    public static final ModConfigSpec.ConfigValue<String> HEARTBEAT_ENDPOINT;
 
     // Data Configuration
-    public static final ModConfigSpec.BooleanValue SEND_DISPLAY_NAME;
-    public static final ModConfigSpec.BooleanValue SEND_PLAYER_IP;
-    public static final ModConfigSpec.BooleanValue SEND_GAMEMODE;
     public static final ModConfigSpec.BooleanValue SEND_DIMENSION;
     public static final ModConfigSpec.BooleanValue SEND_POSITION;
-    public static final ModConfigSpec.BooleanValue SEND_HEALTH;
-    public static final ModConfigSpec.BooleanValue SEND_EXPERIENCE_LEVEL;
 
     // Heartbeat Configuration
     public static final ModConfigSpec.IntValue HEARTBEAT_INTERVAL_MINUTES;
@@ -34,14 +27,6 @@ public class Config {
         API_URL = BUILDER
                 .comment("The base URL of the backend API (e.g. http://127.0.0.1:5000). Requires server restart to take effect")
                 .define("apiUrl", "http://127.0.0.1:5000");
-
-        PRESENCE_ENDPOINT = BUILDER
-                .comment("The endpoint path for presence events (relative to the base URL). Requires server restart to take effect")
-                .define("presenceEndpoint", "/api/presence");
-
-        HEARTBEAT_ENDPOINT = BUILDER
-                .comment("The endpoint path for heartbeat syncs (relative to the base URL). Requires server restart to take effect")
-                .define("heartbeatEndpoint", "/api/presence/heartbeat");
 
         JWT_SECRET = BUILDER
                 .comment("Secret key used to sign JWT tokens for API authentication. Requires server restart to take effect")
@@ -63,18 +48,6 @@ public class Config {
 
         BUILDER.comment("Player Data Configuration").push("data");
 
-        SEND_DISPLAY_NAME = BUILDER
-                .comment("Include the player's display name (may differ from username)")
-                .define("displayName", true);
-
-        SEND_PLAYER_IP = BUILDER
-                .comment("Include the player's IP address")
-                .define("playerIp", false);
-
-        SEND_GAMEMODE = BUILDER
-                .comment("Include the player's current gamemode")
-                .define("gamemode", true);
-
         SEND_DIMENSION = BUILDER
                 .comment("Include the dimension the player is in")
                 .define("dimension", true);
@@ -82,14 +55,6 @@ public class Config {
         SEND_POSITION = BUILDER
                 .comment("Include the player's coordinates")
                 .define("position", true);
-
-        SEND_HEALTH = BUILDER
-                .comment("Include the player's health")
-                .define("health", false);
-
-        SEND_EXPERIENCE_LEVEL = BUILDER
-                .comment("Include the player's experience level")
-                .define("experienceLevel", true);
 
         BUILDER.pop();
 
