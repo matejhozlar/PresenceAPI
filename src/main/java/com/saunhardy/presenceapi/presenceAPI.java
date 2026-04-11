@@ -1,10 +1,12 @@
 package com.saunhardy.presenceapi;
 
+import com.google.gson.Gson;
 import com.saunhardy.crnet.CRNetClient;
 import com.saunhardy.crnet.HeartbeatHandle;
 import com.saunhardy.crnet.auth.AuthStrategy;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.saunhardy.createrington.api.Endpoints;
+import com.saunhardy.createrington.api.presence.HeartbeatPlayer;
+import com.saunhardy.createrington.api.presence.HeartbeatRequest;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
@@ -25,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 public class presenceAPI {
     public static final String MODID = "presenceapi";
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    private static final Gson GSON = new Gson();
 
     private static CRNetClient client;
     private static HeartbeatHandle heartbeatHandle;
@@ -53,7 +57,7 @@ public class presenceAPI {
         if (heartbeatInterval > 0) {
             MinecraftServer server = event.getServer();
             heartbeatHandle = client.heartbeat()
-                    .endpoint(Config.HEARTBEAT_ENDPOINT.get())
+                    .endpoint(Endpoints.PRESENCE_HEARTBEAT)
                     .interval(heartbeatInterval, TimeUnit.MINUTES)
                     .payload(() -> buildHeartbeatPayload(server))
                     .start();
@@ -80,24 +84,19 @@ public class presenceAPI {
     }
 
     private String buildHeartbeatPayload(MinecraftServer server) {
-        JsonArray playersArray = new JsonArray();
         List<ServerPlayer> players = List.copyOf(server.getPlayerList().getPlayers());
-        for (ServerPlayer player : players) {
-            JsonObject obj = new JsonObject();
-            obj.addProperty("uuid", player.getStringUUID());
-            obj.addProperty("username", player.getGameProfile().getName());
-            playersArray.add(obj);
-        }
-
-        JsonObject payload = new JsonObject();
-        payload.add("players", playersArray);
-        payload.addProperty("timestamp", System.currentTimeMillis());
 
         String serverId = Config.SERVER_ID.get();
-        if (!serverId.isEmpty()) {
-            payload.addProperty("serverId", serverId);
-        }
+        Integer serverIdInt = serverId.isEmpty() ? null : Integer.parseInt(serverId);
 
-        return payload.toString();
+        HeartbeatRequest request = new HeartbeatRequest(
+                players.stream()
+                        .map(p -> new HeartbeatPlayer(p.getStringUUID(), p.getGameProfile().getName()))
+                        .toList(),
+                serverIdInt,
+                System.currentTimeMillis()
+        );
+
+        return GSON.toJson(request);
     }
 }

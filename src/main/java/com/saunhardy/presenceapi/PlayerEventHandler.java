@@ -1,6 +1,10 @@
 package com.saunhardy.presenceapi;
 
+import com.google.gson.Gson;
 import com.saunhardy.crnet.CRNetClient;
+import com.saunhardy.createrington.api.Endpoints;
+import com.saunhardy.createrington.api.presence.Position;
+import com.saunhardy.createrington.api.presence.PresenceRequest;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -8,6 +12,8 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @EventBusSubscriber(modid = presenceAPI.MODID)
 public class PlayerEventHandler {
+
+    private static final Gson GSON = new Gson();
 
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -29,14 +35,34 @@ public class PlayerEventHandler {
             return;
         }
 
-        PlayerPresenceData data = buildPlayerData(player, state);
-        String json = data.toJson().toString();
+        Position position = Config.SEND_POSITION.get()
+                ? new Position(player.getX(), player.getY(), player.getZ())
+                : null;
+
+        String dimension = Config.SEND_DIMENSION.get()
+                ? player.level().dimension().location().toString()
+                : null;
+
+        String serverId = Config.SERVER_ID.get();
+        Integer serverIdInt = serverId.isEmpty() ? null : Integer.parseInt(serverId);
+
+        PresenceRequest request = new PresenceRequest(
+                player.getGameProfile().getName(),
+                player.getStringUUID(),
+                state,
+                System.currentTimeMillis(),
+                serverIdInt,
+                position,
+                dimension
+        );
+
+        String json = GSON.toJson(request);
 
         if (Config.LOG_REQUESTS.get()) {
             presenceAPI.LOGGER.info("Sending presence data: {}", json);
         }
 
-        client.postAsync(Config.PRESENCE_ENDPOINT.get(), json)
+        client.postAsync(Endpoints.PRESENCE, json)
                 .whenComplete((response, ex) -> {
                     if (ex != null) {
                         presenceAPI.LOGGER.error("Failed to send presence data: {}", ex.getMessage());
@@ -49,38 +75,5 @@ public class PlayerEventHandler {
                                 response.getMessage() != null ? response.getMessage() : "success");
                     }
                 });
-    }
-
-    private static PlayerPresenceData buildPlayerData(ServerPlayer player, String state) {
-        PlayerPresenceData.Builder builder = PlayerPresenceData.fromPlayer(player, state);
-
-        String serverId = Config.SERVER_ID.get();
-        if (!serverId.isEmpty()) {
-            builder.serverId(serverId);
-        }
-
-        if (Config.SEND_DISPLAY_NAME.get()) {
-            builder.displayName(player.getDisplayName().getString());
-        }
-        if (Config.SEND_GAMEMODE.get()) {
-            builder.gamemode(player.gameMode.getGameModeForPlayer());
-        }
-        if (Config.SEND_DIMENSION.get()) {
-            builder.dimension(player.level().dimension().location().toString());
-        }
-        if (Config.SEND_POSITION.get()) {
-            builder.position(player.getX(), player.getY(), player.getZ());
-        }
-        if (Config.SEND_HEALTH.get()) {
-            builder.health(player.getHealth());
-        }
-        if (Config.SEND_EXPERIENCE_LEVEL.get()) {
-            builder.experienceLevel(player.experienceLevel);
-        }
-        if (Config.SEND_PLAYER_IP.get() && player.connection != null) {
-            builder.ipAddress(player.connection.getRemoteAddress().toString());
-        }
-
-        return builder.build();
     }
 }
