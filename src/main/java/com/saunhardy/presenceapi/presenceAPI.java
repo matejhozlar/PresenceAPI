@@ -17,6 +17,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
@@ -91,6 +92,7 @@ public class presenceAPI {
 
         HeartbeatRequest request = new HeartbeatRequest(
                 players.stream()
+                        .filter(p -> !(p instanceof FakePlayer))
                         .map(p -> new HeartbeatPlayer(p.getStringUUID(), p.getGameProfile().getName()))
                         .toList(),
                 serverIdInt,
