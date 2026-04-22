@@ -8,6 +8,7 @@ import com.saunhardy.createrington.api.presence.PresenceRequest;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @EventBusSubscriber(modid = presenceAPI.MODID)
@@ -17,14 +18,14 @@ public class PlayerEventHandler {
 
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
+        if (event.getEntity() instanceof ServerPlayer player && !(player instanceof FakePlayer)) {
             sendPresenceData(player, "joined");
         }
     }
 
     @SubscribeEvent
     public static void onPlayerLeave(PlayerEvent.PlayerLoggedOutEvent event) {
-        if (event.getEntity() instanceof ServerPlayer player) {
+        if (event.getEntity() instanceof ServerPlayer player && !(player instanceof FakePlayer)) {
             sendPresenceData(player, "left");
         }
     }
