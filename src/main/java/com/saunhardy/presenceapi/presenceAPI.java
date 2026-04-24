@@ -51,7 +51,7 @@ public class presenceAPI {
 
         client = new CRNetClient.Builder()
                 .baseUrl(Config.API_URL.get())
-                .auth(AuthStrategy.selfSignedJwt(Config.JWT_SECRET.get()))
+                .auth(AuthStrategy.selfSignedJwt(Config.JWT_SECRET.get(), 60, "createrington.mod"))
                 .build();
 
         int heartbeatInterval = Config.HEARTBEAT_INTERVAL_MINUTES.get();
