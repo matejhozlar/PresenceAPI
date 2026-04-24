@@ -1,4 +1,4 @@
-## Version 1.4.1
+## Version 1.5.0
 
-### Fixed
-- Fixed fake players (e.g. chunk-loader bots) incorrectly appearing in the heartbeat player list, matching the filter already applied to join/leave events.
+### Changed
+- JWT tokens sent to the backend now include a scoped audience claim (`createrington.mod`), improving compatibility with CRNet 3.0 and ensuring mod-issued tokens cannot be replayed against other Createrington services.
