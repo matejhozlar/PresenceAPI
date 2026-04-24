@@ -30,7 +30,7 @@ public class Config {
 
         JWT_SECRET = BUILDER
                 .comment("Secret key used to sign JWT tokens for API authentication. Requires server restart to take effect")
-                .define("jwtSecret", "your-secret-key-change-this");
+                .define("jwtSecret", "CHANGE-ME-must-be-at-least-32-chars");
 
         SERVER_ID = BUILDER
                 .comment("Optional server identifier to include in all requests (useful for multi-server setups)")
