@@ -21,6 +21,7 @@ import net.neoforged.neoforge.common.util.FakePlayer;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -28,6 +29,10 @@ import java.util.concurrent.TimeUnit;
 public class presenceAPI {
     public static final String MODID = "presenceapi";
     public static final Logger LOGGER = LogUtils.getLogger();
+
+    // HS256 (used by CRNet's SelfSignedJwtStrategy) requires a key of at least
+    // 256 bits, so the configured secret must be at least 32 UTF-8 bytes.
+    private static final int MIN_JWT_SECRET_BYTES = 32;
 
     private static final Gson GSON = new Gson();
 
@@ -49,9 +54,19 @@ public class presenceAPI {
             return;
         }
 
+        String jwtSecret = Config.JWT_SECRET.get();
+        int secretBytes = jwtSecret == null ? 0 : jwtSecret.getBytes(StandardCharsets.UTF_8).length;
+        if (secretBytes < MIN_JWT_SECRET_BYTES) {
+            LOGGER.error(
+                    "PresenceAPI disabled: jwtSecret is {} bytes ({} bits) but HS256 requires at least {} bytes (256 bits). "
+                            + "Edit config/presenceapi-common.toml and set 'jwtSecret' to a value of at least {} characters, then restart the server.",
+                    secretBytes, secretBytes * 8, MIN_JWT_SECRET_BYTES, MIN_JWT_SECRET_BYTES);
+            return;
+        }
+
         client = new CRNetClient.Builder()
                 .baseUrl(Config.API_URL.get())
-                .auth(AuthStrategy.selfSignedJwt(Config.JWT_SECRET.get(), 60, "createrington.mod"))
+                .auth(AuthStrategy.selfSignedJwt(jwtSecret, 60, "createrington.mod"))
                 .build();
 
         int heartbeatInterval = Config.HEARTBEAT_INTERVAL_MINUTES.get();
