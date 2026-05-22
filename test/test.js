@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 const app = express();
 const PORT = 5000;
-const JWT_SECRET = "your-secret-key-change-this"; // Must match your mod config
+const JWT_SECRET = "CHANGE-ME-must-be-at-least-32-chars"; // Must match your mod config
 
 // Middleware to parse JSON
 app.use(express.json());
@@ -149,6 +149,8 @@ app.use((err, req, res, next) => {
     .json({ error: "Internal server error", details: err.message });
 });
 
+const testToken = jwt.sign({}, JWT_SECRET);
+console.log("Use this token for PowerShell testing:\nBearer " + testToken + "\n");
 // Start server
 app.listen(PORT, () => {
   console.log(`Presence API Server running on http://localhost:${PORT}`);

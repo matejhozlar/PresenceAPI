@@ -99,7 +99,7 @@ public class presenceAPI {
         return client;
     }
 
-    private String buildHeartbeatPayload(MinecraftServer server) {
+    public static String buildHeartbeatPayload(MinecraftServer server) {
         List<ServerPlayer> players = List.copyOf(server.getPlayerList().getPlayers());
 
         String serverId = Config.SERVER_ID.get();
