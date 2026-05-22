@@ -86,6 +86,56 @@ app.post("/api/presence", verifyJWT, (req, res) => {
   });
 });
 
+// Heartbeat endpoint
+// Matches POST /api/presence/heartbeat in Createrington/app PresenceController.heartbeat()
+// Expects: { players: Array<{ uuid, username }>, serverId?: number, timestamp?: number }
+// Returns the same shape as the real controller so the mod's response handling works unchanged
+app.post("/api/presence/heartbeat", verifyJWT, (req, res) => {
+  const { players, serverId, timestamp } = req.body;
+
+  if (!Array.isArray(players)) {
+    return res.status(400).json({ error: "players must be an array" });
+  }
+
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+  const onlinePlayers = players.filter(
+    (p) => p.uuid && p.username && uuidRegex.test(p.uuid),
+  );
+
+  const targetServerId =
+    serverId != null ? parseInt(String(serverId), 10) : null;
+
+  console.log("\n=== Heartbeat Received ===");
+  console.log(
+    `Server ID: ${targetServerId != null ? targetServerId : "not specified"}`,
+  );
+  console.log(
+    `Players reported: ${onlinePlayers.length} (${players.length - onlinePlayers.length} filtered out)`,
+  );
+
+  for (const p of onlinePlayers) {
+    console.log(`  - ${p.username} (${p.uuid})`);
+  }
+
+  if (timestamp) {
+    console.log(`Mod timestamp: ${new Date(timestamp).toISOString()}`);
+  }
+
+  console.log("=========================\n");
+
+  res.status(200).json({
+    success: true,
+    message: "Heartbeat processed",
+    data: {
+      serverId: targetServerId,
+      playersReported: onlinePlayers.length,
+      receivedAt: new Date().toISOString(),
+    },
+  });
+});
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
@@ -102,7 +152,10 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Presence API Server running on http://localhost:${PORT}`);
-  console.log(`Endpoint: POST http://localhost:${PORT}/api/presence`);
+  console.log(`Endpoints:`);
+  console.log(`  POST http://localhost:${PORT}/api/presence          (join/leave events)`);
+  console.log(`  POST http://localhost:${PORT}/api/presence/heartbeat (heartbeat / manual sync)`);
+  console.log(`  GET  http://localhost:${PORT}/health`);
   console.log(`JWT Secret: ${JWT_SECRET}`);
   console.log(`\nWaiting for player events...\n`);
 });
