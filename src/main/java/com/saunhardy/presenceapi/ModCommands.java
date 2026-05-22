@@ -6,6 +6,7 @@ import com.saunhardy.createrington.api.Endpoints;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
@@ -31,26 +32,30 @@ public class ModCommands {
                         return 0;
                     }
 
+                    MinecraftServer server = source.getServer();
+
                     source.sendSuccess(() -> Component.literal("Triggering manual PresenceAPI heartbeat sync..."), true);
 
                     // Generate the payload using the method we just made public
-                    String payload = presenceAPI.buildHeartbeatPayload(source.getServer());
+                    String payload = presenceAPI.buildHeartbeatPayload(server);
 
-                    // Send the async POST request to the heartbeat endpoint
+                    // Send the async POST request to the heartbeat endpoint. The
+                    // whenComplete callback runs on the HTTP worker thread, so
+                    // marshal the command feedback back onto the server thread.
                     client.postAsync(Endpoints.PRESENCE_HEARTBEAT, payload)
-                        .whenComplete((response, ex) -> {
+                        .whenComplete((response, ex) -> server.execute(() -> {
                             if (ex != null) {
                                 presenceAPI.LOGGER.error("Failed to execute manual sync: {}", ex.getMessage());
                                 source.sendFailure(Component.literal("Failed to send sync request. Check server console for errors."));
                             } else if (!response.isSuccess()) {
-                                presenceAPI.LOGGER.error("Manual sync returned HTTP {}: {}", 
-                                        response.getStatusCode(), 
+                                presenceAPI.LOGGER.error("Manual sync returned HTTP {}: {}",
+                                        response.getStatusCode(),
                                         response.getMessage() != null ? response.getMessage() : response.getError());
                                 source.sendFailure(Component.literal("Sync returned an error from the API. Check server logs."));
                             } else {
                                 source.sendSuccess(() -> Component.literal("Successfully synced presence data with the backend!"), true);
                             }
-                        });
+                        }));
 
                     return 1;
                 })
