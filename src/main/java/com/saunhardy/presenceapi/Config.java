@@ -2,11 +2,17 @@ package com.saunhardy.presenceapi;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
+import java.util.Arrays;
+
 public class Config {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     // API Configuration
     public static final ModConfigSpec.ConfigValue<String> API_URL;
+    public static final ModConfigSpec.ConfigValue<String> PRESENCE_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> HEARTBEAT_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> JSON_FIELD_NAMING;
+    public static final ModConfigSpec.ConfigValue<String> AUTH_MODE;
     public static final ModConfigSpec.ConfigValue<String> JWT_SECRET;
     public static final ModConfigSpec.ConfigValue<String> SERVER_ID;
     public static final ModConfigSpec.BooleanValue ENABLED;
@@ -14,6 +20,10 @@ public class Config {
     // Data Configuration
     public static final ModConfigSpec.BooleanValue SEND_DIMENSION;
     public static final ModConfigSpec.BooleanValue SEND_POSITION;
+    public static final ModConfigSpec.BooleanValue SEND_ROTATION;
+    public static final ModConfigSpec.BooleanValue SEND_EXPERIENCE;
+    public static final ModConfigSpec.BooleanValue SEND_HEALTH;
+    public static final ModConfigSpec.BooleanValue SEND_PING;
 
     // Heartbeat Configuration
     public static final ModConfigSpec.IntValue HEARTBEAT_INTERVAL_MINUTES;
@@ -28,8 +38,36 @@ public class Config {
                 .comment("The base URL of the backend API (e.g. http://127.0.0.1:5000). Requires server restart to take effect")
                 .define("apiUrl", "http://127.0.0.1:5000");
 
+        PRESENCE_ENDPOINT = BUILDER
+                .comment(
+                        "Path (relative to apiUrl) that join/leave presence events are POSTed to.",
+                        "Override this to target your own backend. A leading slash is optional.",
+                        "Takes effect on the next config reload (no restart required)")
+                .define("presenceEndpoint", "/api/presence");
+
+        HEARTBEAT_ENDPOINT = BUILDER
+                .comment(
+                        "Path (relative to apiUrl) that the periodic heartbeat (full player list) is POSTed to.",
+                        "Override this to target your own backend. A leading slash is optional.",
+                        "Requires server restart to take effect")
+                .define("heartbeatEndpoint", "/api/presence/heartbeat");
+
+        JSON_FIELD_NAMING = BUILDER
+                .comment(
+                        "Field naming convention for the JSON request bodies. Requires server restart to take effect.",
+                        "  camelCase  - e.g. minecraftUsername, serverId (default)",
+                        "  snake_case - e.g. minecraft_username, server_id")
+                .defineInList("jsonFieldNaming", "camelCase", Arrays.asList("camelCase", "snake_case"));
+
+        AUTH_MODE = BUILDER
+                .comment(
+                        "Authentication mode for backend requests. Requires server restart to take effect.",
+                        "  jwt  - sign each request with a self-signed HS256 bearer token (default)",
+                        "  none - send no Authorization header (for public backends that require no auth)")
+                .defineInList("authMode", "jwt", Arrays.asList("jwt", "none"));
+
         JWT_SECRET = BUILDER
-                .comment("Secret key used to sign JWT tokens for API authentication. Requires server restart to take effect")
+                .comment("Secret key used to sign JWT tokens for API authentication. Only used when authMode = jwt, in which case it must be at least 32 characters. Requires server restart to take effect")
                 .define("jwtSecret", "CHANGE-ME-must-be-at-least-32-chars");
 
         SERVER_ID = BUILDER
@@ -55,6 +93,22 @@ public class Config {
         SEND_POSITION = BUILDER
                 .comment("Include the player's coordinates")
                 .define("position", true);
+
+        SEND_ROTATION = BUILDER
+                .comment("Include the direction the player is facing (yaw + pitch)")
+                .define("rotation", true);
+
+        SEND_EXPERIENCE = BUILDER
+                .comment("Include the player's experience level")
+                .define("experienceLevel", true);
+
+        SEND_HEALTH = BUILDER
+                .comment("Include the player's current health (0-20 by default)")
+                .define("health", true);
+
+        SEND_PING = BUILDER
+                .comment("Include the player's connection latency in milliseconds")
+                .define("ping", true);
 
         BUILDER.pop();
 

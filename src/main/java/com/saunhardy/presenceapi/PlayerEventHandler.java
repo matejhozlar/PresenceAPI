@@ -1,10 +1,6 @@
 package com.saunhardy.presenceapi;
 
-import com.google.gson.Gson;
 import com.saunhardy.crnet.CRNetClient;
-import com.saunhardy.createrington.api.Endpoints;
-import com.saunhardy.createrington.api.presence.Position;
-import com.saunhardy.createrington.api.presence.PresenceRequest;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -13,8 +9,6 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
 @EventBusSubscriber(modid = presenceAPI.MODID)
 public class PlayerEventHandler {
-
-    private static final Gson GSON = new Gson();
 
     @SubscribeEvent
     public static void onPlayerJoin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -36,34 +30,27 @@ public class PlayerEventHandler {
             return;
         }
 
-        Position position = Config.SEND_POSITION.get()
-                ? new Position(player.getX(), player.getY(), player.getZ())
-                : null;
-
-        String dimension = Config.SEND_DIMENSION.get()
-                ? player.level().dimension().location().toString()
-                : null;
-
-        String serverId = Config.SERVER_ID.get();
-        Integer serverIdInt = serverId.isEmpty() ? null : Integer.parseInt(serverId);
-
-        PresenceRequest request = new PresenceRequest(
+        Payloads.PresenceRequest request = new Payloads.PresenceRequest(
                 player.getGameProfile().getName(),
                 player.getStringUUID(),
                 state,
                 System.currentTimeMillis(),
-                serverIdInt,
-                position,
-                dimension
+                Payloads.serverId(),
+                Payloads.position(player),
+                Payloads.dimension(player),
+                Payloads.rotation(player),
+                Payloads.experienceLevel(player),
+                Payloads.health(player),
+                Payloads.ping(player)
         );
 
-        String json = GSON.toJson(request);
+        String json = presenceAPI.getGson().toJson(request);
 
         if (Config.LOG_REQUESTS.get()) {
             presenceAPI.LOGGER.info("Sending presence data: {}", json);
         }
 
-        client.postAsync(Endpoints.PRESENCE, json)
+        client.postAsync(Config.PRESENCE_ENDPOINT.get(), json)
                 .whenComplete((response, ex) -> {
                     if (ex != null) {
                         presenceAPI.LOGGER.error("Failed to send presence data: {}", ex.getMessage());
