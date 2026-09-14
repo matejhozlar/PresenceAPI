@@ -24,6 +24,7 @@ public class Config {
     public static final ModConfigSpec.BooleanValue SEND_EXPERIENCE;
     public static final ModConfigSpec.BooleanValue SEND_HEALTH;
     public static final ModConfigSpec.BooleanValue SEND_PING;
+    public static final ModConfigSpec.BooleanValue SEND_PLAY_TIME;
 
     // Heartbeat Configuration
     public static final ModConfigSpec.IntValue HEARTBEAT_INTERVAL_MINUTES;
@@ -109,6 +110,10 @@ public class Config {
         SEND_PING = BUILDER
                 .comment("Include the player's connection latency in milliseconds")
                 .define("ping", true);
+
+        SEND_PLAY_TIME = BUILDER
+                .comment("Include the player's vanilla play_time stat in ticks. Lets the backend credit playtime from the stat instead of wall-clock, so time the server freezes it for (e.g. AFK) is excluded")
+                .define("playTime", true);
 
         BUILDER.pop();
 

@@ -32,6 +32,8 @@ public class presenceAPI {
     // 256 bits, so the configured secret must be at least 32 UTF-8 bytes.
     private static final int MIN_JWT_SECRET_BYTES = 32;
 
+    private static final int FINAL_HEARTBEAT_TIMEOUT_SECONDS = 3;
+
     // Built at server start from the configured naming convention. Used by both
     // the heartbeat payload (here) and the presence events (PlayerEventHandler).
     private static Gson gson;
@@ -100,10 +102,35 @@ public class presenceAPI {
         if (heartbeatHandle != null) {
             heartbeatHandle.stop();
             heartbeatHandle = null;
+            sendFinalHeartbeat(event.getServer());
         }
         if (client != null) {
             client.close();
             client = null;
+        }
+    }
+
+    // Players are still online here and their "left" events fire only after
+    // the client is closed, so this is the last chance to report their
+    // current play_time. Blocks the server thread briefly on purpose: the
+    // process is going away and an async send would be abandoned.
+    private static void sendFinalHeartbeat(MinecraftServer server) {
+        if (client == null) {
+            return;
+        }
+        try {
+            String json = buildHeartbeatPayload(server);
+            var response = client.postAsync(Config.HEARTBEAT_ENDPOINT.get(), json)
+                    .get(FINAL_HEARTBEAT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (response.isSuccess()) {
+                LOGGER.info("Final heartbeat sent");
+            } else {
+                LOGGER.warn("Final heartbeat returned HTTP {}: {}",
+                        response.getStatusCode(),
+                        response.getMessage() != null ? response.getMessage() : response.getError());
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Final heartbeat failed: {}", e.getMessage());
         }
     }
 

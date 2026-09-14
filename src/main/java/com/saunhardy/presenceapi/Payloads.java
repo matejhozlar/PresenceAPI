@@ -1,6 +1,7 @@
 package com.saunhardy.presenceapi;
 
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.stats.Stats;
 
 import java.util.List;
 
@@ -37,7 +38,8 @@ final class Payloads {
             Rotation rotation,
             Integer experienceLevel,
             Float health,
-            Integer ping
+            Integer ping,
+            Integer playTimeTicks
     ) {}
 
     // ── heartbeat: the full online roster ───────────────────────────────
@@ -57,7 +59,8 @@ final class Payloads {
             Rotation rotation,
             Integer experienceLevel,
             Float health,
-            Integer ping
+            Integer ping,
+            Integer playTimeTicks
     ) {}
 
     // ── per-player field builders (respect the [data] toggles) ──────────
@@ -85,6 +88,14 @@ final class Payloads {
         return Config.SEND_PING.get() ? p.connection.latency() : null;
     }
 
+    // The vanilla play_time stat only advances while the server awards it, so
+    // a mod that pauses it (e.g. while the player is AFK) is reflected here.
+    static Integer playTimeTicks(ServerPlayer p) {
+        return Config.SEND_PLAY_TIME.get()
+                ? p.getStats().getValue(Stats.CUSTOM.get(Stats.PLAY_TIME))
+                : null;
+    }
+
     /** The configured server identifier, or {@code null} when unset. */
     static Integer serverId() {
         String serverId = Config.SERVER_ID.get();
@@ -101,7 +112,8 @@ final class Payloads {
                 rotation(p),
                 experienceLevel(p),
                 health(p),
-                ping(p)
+                ping(p),
+                playTimeTicks(p)
         );
     }
 }

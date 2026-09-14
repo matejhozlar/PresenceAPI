@@ -41,7 +41,8 @@ public class PlayerEventHandler {
                 Payloads.rotation(player),
                 Payloads.experienceLevel(player),
                 Payloads.health(player),
-                Payloads.ping(player)
+                Payloads.ping(player),
+                Payloads.playTimeTicks(player)
         );
 
         String json = presenceAPI.getGson().toJson(request);
