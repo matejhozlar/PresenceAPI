@@ -47,7 +47,8 @@ public class Config {
                 .comment(
                         "Path (relative to apiUrl) that the periodic heartbeat (full player list) is POSTed to.",
                         "Override this to target your own backend. A leading slash is optional.",
-                        "Requires server restart to take effect")
+                        "The scheduled heartbeat uses the value read at server start; /presenceapi sync and the",
+                        "shutdown heartbeat read it live, so a config reload only affects those until restart")
                 .define("heartbeatEndpoint", Endpoints.PRESENCE_HEARTBEAT);
 
         JSON_FIELD_NAMING = BUILDER
@@ -69,8 +70,8 @@ public class Config {
                 .define("jwtSecret", "CHANGE-ME-must-be-at-least-32-chars");
 
         SERVER_ID = BUILDER
-                .comment("Optional server identifier to include in all requests (useful for multi-server setups)")
-                .define("serverId", "");
+                .comment("Optional numeric server identifier to include in all requests (useful for multi-server setups). Leave empty to omit")
+                .define("serverId", "", value -> value instanceof String s && (s.isEmpty() || s.chars().allMatch(Character::isDigit)));
 
         ENABLED = BUILDER
                 .comment("Enable or disable presence tracking system. Requires server restart to take effect")

@@ -23,7 +23,9 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Mod(presenceAPI.MODID)
 public class presenceAPI {
@@ -89,8 +91,8 @@ public class presenceAPI {
             heartbeatHandle = client.heartbeat()
                     .endpoint(Config.HEARTBEAT_ENDPOINT.get())
                     .interval(heartbeatInterval, TimeUnit.MINUTES)
-                    // Build on the server thread: the per-player telemetry
-                    // (position, health, ping, ...) is only safe to read there.
+                    // Build on the server thread: player stats are only safe
+                    // to read there.
                     .payloadOn(server, () -> buildHeartbeatPayload(server))
                     .start();
         }
@@ -104,8 +106,8 @@ public class presenceAPI {
         if (heartbeatHandle != null) {
             heartbeatHandle.stop();
             heartbeatHandle = null;
-            sendFinalHeartbeat(event.getServer());
         }
+        sendFinalHeartbeat(event.getServer());
         if (client != null) {
             client.close();
             client = null;
@@ -120,10 +122,10 @@ public class presenceAPI {
         if (client == null) {
             return;
         }
+        String json = buildHeartbeatPayload(server);
+        var future = client.postAsync(Config.HEARTBEAT_ENDPOINT.get(), json);
         try {
-            String json = buildHeartbeatPayload(server);
-            var response = client.postAsync(Config.HEARTBEAT_ENDPOINT.get(), json)
-                    .get(FINAL_HEARTBEAT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            var response = future.get(FINAL_HEARTBEAT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (response.isSuccess()) {
                 LOGGER.info("Final heartbeat sent");
             } else {
@@ -131,8 +133,15 @@ public class presenceAPI {
                         response.getStatusCode(),
                         response.getMessage() != null ? response.getMessage() : response.getError());
             }
-        } catch (Exception e) {
-            LOGGER.warn("Final heartbeat failed: {}", e.getMessage());
+        } catch (InterruptedException e) {
+            future.cancel(true);
+            Thread.currentThread().interrupt();
+            LOGGER.warn("Final heartbeat interrupted");
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            LOGGER.warn("Final heartbeat timed out after {}s", FINAL_HEARTBEAT_TIMEOUT_SECONDS);
+        } catch (ExecutionException e) {
+            LOGGER.warn("Final heartbeat failed: {}", String.valueOf(e.getCause()));
         }
     }
 
