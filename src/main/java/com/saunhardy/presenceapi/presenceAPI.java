@@ -3,6 +3,8 @@ package com.saunhardy.presenceapi;
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.saunhardy.createrington.api.presence.HeartbeatPlayer;
+import com.saunhardy.createrington.api.presence.HeartbeatRequest;
 import com.saunhardy.crnet.CRNetClient;
 import com.saunhardy.crnet.HeartbeatHandle;
 import com.saunhardy.crnet.auth.AuthStrategy;
@@ -157,13 +159,13 @@ public class presenceAPI {
     }
 
     public static String buildHeartbeatPayload(MinecraftServer server) {
-        List<Payloads.HeartbeatEntry> entries = server.getPlayerList().getPlayers().stream()
+        List<HeartbeatPlayer> players = server.getPlayerList().getPlayers().stream()
                 .filter(p -> !(p instanceof FakePlayer))
-                .map(Payloads::heartbeatEntry)
+                .map(Payloads::heartbeatPlayer)
                 .toList();
 
-        Payloads.HeartbeatRequest request = new Payloads.HeartbeatRequest(
-                entries,
+        HeartbeatRequest request = new HeartbeatRequest(
+                players,
                 Payloads.serverId(),
                 System.currentTimeMillis()
         );

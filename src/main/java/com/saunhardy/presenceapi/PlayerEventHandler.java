@@ -1,5 +1,6 @@
 package com.saunhardy.presenceapi;
 
+import com.saunhardy.createrington.api.presence.PresenceRequest;
 import com.saunhardy.crnet.CRNetClient;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -30,7 +31,7 @@ public class PlayerEventHandler {
             return;
         }
 
-        Payloads.PresenceRequest request = new Payloads.PresenceRequest(
+        PresenceRequest request = new PresenceRequest(
                 player.getGameProfile().getName(),
                 player.getStringUUID(),
                 state,
@@ -38,10 +39,6 @@ public class PlayerEventHandler {
                 Payloads.serverId(),
                 Payloads.position(player),
                 Payloads.dimension(player),
-                Payloads.rotation(player),
-                Payloads.experienceLevel(player),
-                Payloads.health(player),
-                Payloads.ping(player),
                 Payloads.playTimeTicks(player)
         );
 

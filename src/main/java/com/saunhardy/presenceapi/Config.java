@@ -1,5 +1,6 @@
 package com.saunhardy.presenceapi;
 
+import com.saunhardy.createrington.api.Endpoints;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 import java.util.Arrays;
@@ -20,10 +21,6 @@ public class Config {
     // Data Configuration
     public static final ModConfigSpec.BooleanValue SEND_DIMENSION;
     public static final ModConfigSpec.BooleanValue SEND_POSITION;
-    public static final ModConfigSpec.BooleanValue SEND_ROTATION;
-    public static final ModConfigSpec.BooleanValue SEND_EXPERIENCE;
-    public static final ModConfigSpec.BooleanValue SEND_HEALTH;
-    public static final ModConfigSpec.BooleanValue SEND_PING;
     public static final ModConfigSpec.BooleanValue SEND_PLAY_TIME;
 
     // Heartbeat Configuration
@@ -44,14 +41,14 @@ public class Config {
                         "Path (relative to apiUrl) that join/leave presence events are POSTed to.",
                         "Override this to target your own backend. A leading slash is optional.",
                         "Takes effect on the next config reload (no restart required)")
-                .define("presenceEndpoint", "/api/presence");
+                .define("presenceEndpoint", Endpoints.PRESENCE);
 
         HEARTBEAT_ENDPOINT = BUILDER
                 .comment(
                         "Path (relative to apiUrl) that the periodic heartbeat (full player list) is POSTed to.",
                         "Override this to target your own backend. A leading slash is optional.",
                         "Requires server restart to take effect")
-                .define("heartbeatEndpoint", "/api/presence/heartbeat");
+                .define("heartbeatEndpoint", Endpoints.PRESENCE_HEARTBEAT);
 
         JSON_FIELD_NAMING = BUILDER
                 .comment(
@@ -94,22 +91,6 @@ public class Config {
         SEND_POSITION = BUILDER
                 .comment("Include the player's coordinates")
                 .define("position", true);
-
-        SEND_ROTATION = BUILDER
-                .comment("Include the direction the player is facing (yaw + pitch)")
-                .define("rotation", true);
-
-        SEND_EXPERIENCE = BUILDER
-                .comment("Include the player's experience level")
-                .define("experienceLevel", true);
-
-        SEND_HEALTH = BUILDER
-                .comment("Include the player's current health (0-20 by default)")
-                .define("health", true);
-
-        SEND_PING = BUILDER
-                .comment("Include the player's connection latency in milliseconds")
-                .define("ping", true);
 
         SEND_PLAY_TIME = BUILDER
                 .comment("Include the player's vanilla play_time stat in ticks. Lets the backend credit playtime from the stat instead of wall-clock, so time the server freezes it for (e.g. AFK) is excluded")
