@@ -1,12 +1,19 @@
 package com.saunhardy.presenceapi;
 
+import com.saunhardy.createrington.api.Endpoints;
 import net.neoforged.neoforge.common.ModConfigSpec;
+
+import java.util.Arrays;
 
 public class Config {
     public static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
 
     // API Configuration
     public static final ModConfigSpec.ConfigValue<String> API_URL;
+    public static final ModConfigSpec.ConfigValue<String> PRESENCE_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> HEARTBEAT_ENDPOINT;
+    public static final ModConfigSpec.ConfigValue<String> JSON_FIELD_NAMING;
+    public static final ModConfigSpec.ConfigValue<String> AUTH_MODE;
     public static final ModConfigSpec.ConfigValue<String> JWT_SECRET;
     public static final ModConfigSpec.ConfigValue<String> SERVER_ID;
     public static final ModConfigSpec.BooleanValue ENABLED;
@@ -14,6 +21,7 @@ public class Config {
     // Data Configuration
     public static final ModConfigSpec.BooleanValue SEND_DIMENSION;
     public static final ModConfigSpec.BooleanValue SEND_POSITION;
+    public static final ModConfigSpec.BooleanValue SEND_PLAY_TIME;
 
     // Heartbeat Configuration
     public static final ModConfigSpec.IntValue HEARTBEAT_INTERVAL_MINUTES;
@@ -28,13 +36,42 @@ public class Config {
                 .comment("The base URL of the backend API (e.g. http://127.0.0.1:5000). Requires server restart to take effect")
                 .define("apiUrl", "http://127.0.0.1:5000");
 
+        PRESENCE_ENDPOINT = BUILDER
+                .comment(
+                        "Path (relative to apiUrl) that join/leave presence events are POSTed to.",
+                        "Override this to target your own backend. A leading slash is optional.",
+                        "Takes effect on the next config reload (no restart required)")
+                .define("presenceEndpoint", Endpoints.PRESENCE);
+
+        HEARTBEAT_ENDPOINT = BUILDER
+                .comment(
+                        "Path (relative to apiUrl) that the periodic heartbeat (full player list) is POSTed to.",
+                        "Override this to target your own backend. A leading slash is optional.",
+                        "The scheduled heartbeat uses the value read at server start; /presenceapi sync and the",
+                        "shutdown heartbeat read it live, so a config reload only affects those until restart")
+                .define("heartbeatEndpoint", Endpoints.PRESENCE_HEARTBEAT);
+
+        JSON_FIELD_NAMING = BUILDER
+                .comment(
+                        "Field naming convention for the JSON request bodies. Requires server restart to take effect.",
+                        "  camelCase  - e.g. minecraftUsername, serverId (default)",
+                        "  snake_case - e.g. minecraft_username, server_id")
+                .defineInList("jsonFieldNaming", "camelCase", Arrays.asList("camelCase", "snake_case"));
+
+        AUTH_MODE = BUILDER
+                .comment(
+                        "Authentication mode for backend requests. Requires server restart to take effect.",
+                        "  jwt  - sign each request with a self-signed HS256 bearer token (default)",
+                        "  none - send no Authorization header (for public backends that require no auth)")
+                .defineInList("authMode", "jwt", Arrays.asList("jwt", "none"));
+
         JWT_SECRET = BUILDER
-                .comment("Secret key used to sign JWT tokens for API authentication. Requires server restart to take effect")
+                .comment("Secret key used to sign JWT tokens for API authentication. Only used when authMode = jwt, in which case it must be at least 32 characters. Requires server restart to take effect")
                 .define("jwtSecret", "CHANGE-ME-must-be-at-least-32-chars");
 
         SERVER_ID = BUILDER
-                .comment("Optional server identifier to include in all requests (useful for multi-server setups)")
-                .define("serverId", "");
+                .comment("Optional numeric server identifier to include in all requests (useful for multi-server setups). Leave empty to omit")
+                .define("serverId", "", value -> value instanceof String s && (s.isEmpty() || s.chars().allMatch(Character::isDigit)));
 
         ENABLED = BUILDER
                 .comment("Enable or disable presence tracking system. Requires server restart to take effect")
@@ -55,6 +92,10 @@ public class Config {
         SEND_POSITION = BUILDER
                 .comment("Include the player's coordinates")
                 .define("position", true);
+
+        SEND_PLAY_TIME = BUILDER
+                .comment("Include the player's vanilla play_time stat in ticks. Lets the backend credit playtime from the stat instead of wall-clock, so time the server freezes it for (e.g. AFK) is excluded")
+                .define("playTime", true);
 
         BUILDER.pop();
 

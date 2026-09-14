@@ -1,14 +1,14 @@
 package com.saunhardy.presenceapi;
 
+import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.saunhardy.createrington.api.presence.HeartbeatPlayer;
+import com.saunhardy.createrington.api.presence.HeartbeatRequest;
 import com.saunhardy.crnet.CRNetClient;
 import com.saunhardy.crnet.HeartbeatHandle;
 import com.saunhardy.crnet.auth.AuthStrategy;
-import com.saunhardy.createrington.api.Endpoints;
-import com.saunhardy.createrington.api.presence.HeartbeatPlayer;
-import com.saunhardy.createrington.api.presence.HeartbeatRequest;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 import net.neoforged.bus.api.IEventBus;
@@ -23,7 +23,9 @@ import net.neoforged.neoforge.event.server.ServerStoppingEvent;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Mod(presenceAPI.MODID)
 public class presenceAPI {
@@ -34,7 +36,11 @@ public class presenceAPI {
     // 256 bits, so the configured secret must be at least 32 UTF-8 bytes.
     private static final int MIN_JWT_SECRET_BYTES = 32;
 
-    private static final Gson GSON = new Gson();
+    private static final int FINAL_HEARTBEAT_TIMEOUT_SECONDS = 3;
+
+    // Built at server start from the configured naming convention. Used by both
+    // the heartbeat payload (here) and the presence events (PlayerEventHandler).
+    private static Gson gson;
 
     private static CRNetClient client;
     private static HeartbeatHandle heartbeatHandle;
@@ -54,28 +60,40 @@ public class presenceAPI {
             return;
         }
 
-        String jwtSecret = Config.JWT_SECRET.get();
-        int secretBytes = jwtSecret == null ? 0 : jwtSecret.getBytes(StandardCharsets.UTF_8).length;
-        if (secretBytes < MIN_JWT_SECRET_BYTES) {
-            LOGGER.error(
-                    "PresenceAPI disabled: jwtSecret is {} bytes ({} bits) but HS256 requires at least {} bytes (256 bits). "
-                            + "Edit config/presenceapi-common.toml and set 'jwtSecret' to a value of at least {} characters, then restart the server.",
-                    secretBytes, secretBytes * 8, MIN_JWT_SECRET_BYTES, MIN_JWT_SECRET_BYTES);
-            return;
+        gson = buildGson(Config.JSON_FIELD_NAMING.get());
+
+        AuthStrategy authStrategy;
+        if ("none".equals(Config.AUTH_MODE.get())) {
+            authStrategy = AuthStrategy.none();
+            LOGGER.info("PresenceAPI auth mode: none (requests are sent without an Authorization header)");
+        } else {
+            String jwtSecret = Config.JWT_SECRET.get();
+            int secretBytes = jwtSecret == null ? 0 : jwtSecret.getBytes(StandardCharsets.UTF_8).length;
+            if (secretBytes < MIN_JWT_SECRET_BYTES) {
+                LOGGER.error(
+                        "PresenceAPI disabled: jwtSecret is {} bytes ({} bits) but HS256 requires at least {} bytes (256 bits). "
+                                + "Edit config/presenceapi-common.toml and set 'jwtSecret' to a value of at least {} characters "
+                                + "(or set 'authMode' to \"none\" if your backend requires no auth), then restart the server.",
+                        secretBytes, secretBytes * 8, MIN_JWT_SECRET_BYTES, MIN_JWT_SECRET_BYTES);
+                return;
+            }
+            authStrategy = AuthStrategy.selfSignedJwt(jwtSecret, 60, "createrington.mod");
         }
 
         client = new CRNetClient.Builder()
                 .baseUrl(Config.API_URL.get())
-                .auth(AuthStrategy.selfSignedJwt(jwtSecret, 60, "createrington.mod"))
+                .auth(authStrategy)
                 .build();
 
         int heartbeatInterval = Config.HEARTBEAT_INTERVAL_MINUTES.get();
         if (heartbeatInterval > 0) {
             MinecraftServer server = event.getServer();
             heartbeatHandle = client.heartbeat()
-                    .endpoint(Endpoints.PRESENCE_HEARTBEAT)
+                    .endpoint(Config.HEARTBEAT_ENDPOINT.get())
                     .interval(heartbeatInterval, TimeUnit.MINUTES)
-                    .payload(() -> buildHeartbeatPayload(server))
+                    // Build on the server thread: player stats are only safe
+                    // to read there.
+                    .payloadOn(server, () -> buildHeartbeatPayload(server))
                     .start();
         }
 
@@ -89,9 +107,41 @@ public class presenceAPI {
             heartbeatHandle.stop();
             heartbeatHandle = null;
         }
+        sendFinalHeartbeat(event.getServer());
         if (client != null) {
             client.close();
             client = null;
+        }
+    }
+
+    // Players are still online here and their "left" events fire only after
+    // the client is closed, so this is the last chance to report their
+    // current play_time. Blocks the server thread briefly on purpose: the
+    // process is going away and an async send would be abandoned.
+    private static void sendFinalHeartbeat(MinecraftServer server) {
+        if (client == null) {
+            return;
+        }
+        String json = buildHeartbeatPayload(server);
+        var future = client.postAsync(Config.HEARTBEAT_ENDPOINT.get(), json);
+        try {
+            var response = future.get(FINAL_HEARTBEAT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (response.isSuccess()) {
+                LOGGER.info("Final heartbeat sent");
+            } else {
+                LOGGER.warn("Final heartbeat returned HTTP {}: {}",
+                        response.getStatusCode(),
+                        response.getMessage() != null ? response.getMessage() : response.getError());
+            }
+        } catch (InterruptedException e) {
+            future.cancel(true);
+            Thread.currentThread().interrupt();
+            LOGGER.warn("Final heartbeat interrupted");
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            LOGGER.warn("Final heartbeat timed out after {}s", FINAL_HEARTBEAT_TIMEOUT_SECONDS);
+        } catch (ExecutionException e) {
+            LOGGER.warn("Final heartbeat failed: {}", String.valueOf(e.getCause()));
         }
     }
 
@@ -99,21 +149,36 @@ public class presenceAPI {
         return client;
     }
 
-    public static String buildHeartbeatPayload(MinecraftServer server) {
-        List<ServerPlayer> players = List.copyOf(server.getPlayerList().getPlayers());
+    static Gson getGson() {
+        return gson;
+    }
 
-        String serverId = Config.SERVER_ID.get();
-        Integer serverIdInt = serverId.isEmpty() ? null : Integer.parseInt(serverId);
+    /**
+     * Builds the Gson used to serialise request bodies, honouring the configured
+     * field naming convention. {@code snake_case} maps to Gson's
+     * {@code LOWER_CASE_WITH_UNDERSCORES} policy; anything else (i.e.
+     * {@code camelCase}) keeps the record component names as-is.
+     */
+    private static Gson buildGson(String namingConvention) {
+        GsonBuilder builder = new GsonBuilder();
+        if ("snake_case".equals(namingConvention)) {
+            builder.setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
+        }
+        return builder.create();
+    }
+
+    public static String buildHeartbeatPayload(MinecraftServer server) {
+        List<HeartbeatPlayer> players = server.getPlayerList().getPlayers().stream()
+                .filter(p -> !(p instanceof FakePlayer))
+                .map(Payloads::heartbeatPlayer)
+                .toList();
 
         HeartbeatRequest request = new HeartbeatRequest(
-                players.stream()
-                        .filter(p -> !(p instanceof FakePlayer))
-                        .map(p -> new HeartbeatPlayer(p.getStringUUID(), p.getGameProfile().getName()))
-                        .toList(),
-                serverIdInt,
+                players,
+                Payloads.serverId(),
                 System.currentTimeMillis()
         );
 
-        return GSON.toJson(request);
+        return gson.toJson(request);
     }
 }

@@ -39,13 +39,9 @@ app.post("/api/presence", verifyJWT, (req, res) => {
     minecraftUsername,
     uuid,
     state,
-    displayName,
-    gamemode,
     dimension,
     position,
-    health,
-    experienceLevel,
-    ipAddress,
+    playTimeTicks,
     serverId,
     timestamp,
   } = req.body;
@@ -55,24 +51,16 @@ app.post("/api/presence", verifyJWT, (req, res) => {
   console.log(`Server ID: ${serverId}`);
   console.log(`Player: ${minecraftUsername} (${uuid})`);
   console.log(`State: ${state}`);
-  console.log(`Display Name: ${displayName || "N/A"}`);
-  console.log(`Gamemode: ${gamemode || "N/A"}`);
   console.log(`Dimension: ${dimension || "N/A"}`);
 
   if (position) {
     console.log(`Position: X=${position.x}, Y=${position.y}, Z=${position.z}`);
   }
 
-  if (health !== undefined) {
-    console.log(`Health: ${health}`);
-  }
-
-  if (experienceLevel !== undefined) {
-    console.log(`Experience Level: ${experienceLevel}`);
-  }
-
-  if (ipAddress) {
-    console.log(`IP Address: ${ipAddress}`);
+  if (playTimeTicks !== undefined) {
+    console.log(
+      `Play time: ${playTimeTicks} ticks (${(playTimeTicks / 20 / 3600).toFixed(2)} h)`,
+    );
   }
 
   console.log(`Timestamp: ${new Date(timestamp).toISOString()}`);
@@ -88,7 +76,7 @@ app.post("/api/presence", verifyJWT, (req, res) => {
 
 // Heartbeat endpoint
 // Matches POST /api/presence/heartbeat in Createrington/app PresenceController.heartbeat()
-// Expects: { players: Array<{ uuid, username }>, serverId?: number, timestamp?: number }
+// Expects: { players: Array<{ uuid, minecraftUsername, playTimeTicks? }>, serverId?: number, timestamp?: number }
 // Returns the same shape as the real controller so the mod's response handling works unchanged
 app.post("/api/presence/heartbeat", verifyJWT, (req, res) => {
   const { players, serverId, timestamp } = req.body;
@@ -101,7 +89,7 @@ app.post("/api/presence/heartbeat", verifyJWT, (req, res) => {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   const onlinePlayers = players.filter(
-    (p) => p.uuid && p.username && uuidRegex.test(p.uuid),
+    (p) => p.uuid && p.minecraftUsername && uuidRegex.test(p.uuid),
   );
 
   const targetServerId =
@@ -116,7 +104,11 @@ app.post("/api/presence/heartbeat", verifyJWT, (req, res) => {
   );
 
   for (const p of onlinePlayers) {
-    console.log(`  - ${p.username} (${p.uuid})`);
+    const playTime =
+      p.playTimeTicks !== undefined
+        ? `, play time ${p.playTimeTicks} ticks`
+        : "";
+    console.log(`  - ${p.minecraftUsername} (${p.uuid})${playTime}`);
   }
 
   if (timestamp) {

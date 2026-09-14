@@ -2,7 +2,6 @@ package com.saunhardy.presenceapi;
 
 import com.mojang.brigadier.CommandDispatcher;
 import com.saunhardy.crnet.CRNetClient;
-import com.saunhardy.createrington.api.Endpoints;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -42,7 +41,7 @@ public class ModCommands {
                     // Send the async POST request to the heartbeat endpoint. The
                     // whenComplete callback runs on the HTTP worker thread, so
                     // marshal the command feedback back onto the server thread.
-                    client.postAsync(Endpoints.PRESENCE_HEARTBEAT, payload)
+                    client.postAsync(Config.HEARTBEAT_ENDPOINT.get(), payload)
                         .whenComplete((response, ex) -> server.execute(() -> {
                             if (ex != null) {
                                 presenceAPI.LOGGER.error("Failed to execute manual sync: {}", ex.getMessage());
